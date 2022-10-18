@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.sql.Blob;
 
 @Builder
 @AllArgsConstructor
@@ -12,10 +13,12 @@ import javax.persistence.*;
 @Entity
 @Table(name = "projects")
 public class Project {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
+
+    @Column(nullable = false)
+    private String owner;
 
     @Column(nullable = false)
     private String name;
@@ -26,8 +29,17 @@ public class Project {
     @Column(nullable = false)
     private String link;
 
+    @Lob
+    private Blob fileBLob;
+
+    private String fileName;
+
     public Long getId() {
         return id;
+    }
+
+    public String getOwner() {
+        return owner;
     }
 
     public String getName() {
@@ -40,6 +52,14 @@ public class Project {
 
     public String getLink() {
         return link;
+    }
+
+    public Blob getFileBLob() {
+        return fileBLob;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 
     public void setId(Long id) {
@@ -56,5 +76,17 @@ public class Project {
 
     public void setLink(String link) {
         this.link = link;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    public void setFileBLob(Blob fileBLob) {
+        this.fileBLob = fileBLob;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 }

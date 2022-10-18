@@ -1,194 +1,315 @@
 package com.dvmena.followprojects.controller;
+
+import com.dvmena.followprojects.model.Fields;
 import com.dvmena.followprojects.model.Project;
 import com.dvmena.followprojects.service.ProjectService;
-
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.HPos;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.Button;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
+import javafx.stage.FileChooser;
+import jdk.dynalink.StandardOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.awt.*;
+import javax.sql.rowset.serial.SerialBlob;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ResourceBundle;
 
 @Component
 @RequiredArgsConstructor
 public class ProjectsController extends Thread implements Initializable {
-
+    TableView.TableViewSelectionModel<Project> tableViewSelectionModel;
     private final ProjectService projectService;
+    @FXML
+    private Button clear;
+    @FXML
+    private Button uploadFile;
+    @FXML
+    private Button save;
+    @FXML
+    private Button edit;
+    @FXML
+    private Button update;
+    @FXML
+    private Button remove;
+    @FXML
+    private Button download;
     private ObservableList<Project> obList;
     @FXML
     private TableView<Project> table;
+    @FXML
+    private TableColumn <Project,String>owner;
     @FXML
     private TableColumn<Project,String> name;
     @FXML
     private TableColumn<Project,String> description;
     @FXML
-    private TableColumn<Project, Hyperlink> link;
+    private TableColumn<Project, String> link;
+
+    @FXML
+    private TableColumn<Project, String> fileName;
+    @FXML
+    private TextField textOwner;
     @FXML
     private TextField textName;
     @FXML
     private TextField textDescription;
-
     @FXML
     private TextField textLink;
+    @FXML
+    private Label lblFile;
+    @FXML
+    private Label actionLbl;
+    private File file;
+    private FileInputStream fileInputStream;
+    private Project project;
 
-    private int index;
-    public void onSave(ActionEvent event){
-        Project project = Project.builder()
-                .name(textName.getText())
-                .description(textDescription.getText())
-                .link(textLink.getText())
-                .build();
-        projectService.add(project);
-        obList.add(project);
-        textName.setText("");
-        textDescription.setText("");
-        textLink.setText("");
-    }
-
+    private int selected;
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        this.obList = FXCollections.observableArrayList(projectService.getAll());
+        //load projects from data base and insert into the table
+        obList = FXCollections.observableArrayList(projectService.getAll());
+        owner.setCellValueFactory(new PropertyValueFactory<>("owner"));
         name.setCellValueFactory(new PropertyValueFactory<>("name"));
         description.setCellValueFactory(new PropertyValueFactory<>("description"));
         link.setCellValueFactory(new PropertyValueFactory<>("link"));
+        table.getColumns().add(owner);
         table.getColumns().add(name);
         table.getColumns().add(description);
         table.getColumns().add(link);
         table.setItems(obList);
-        TableView.TableViewSelectionModel<Project> tableViewSelectionModel =
-                table.getSelectionModel();
 
+        //disable button
+        edit.setDisable(true);
+        update.setDisable(true);
+        remove.setDisable(true);
+        download.setDisable(true);
+
+
+        //load project when selecting item from menu
+
+        tableViewSelectionModel = table.getSelectionModel();
         tableViewSelectionModel.selectedIndexProperty()
                 .addListener((observableValue, number, t1) -> {
-                    int index = (int)t1;
-                    this.index = index;
-                    try {
-                        loadDetailsPage(obList.get(index));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                    actionLbl.setText("");
+                    int index = (int) t1;
+                    if(obList.size() > 0 && index>=0) {
+                        this.selected = index;
+                        project = obList.get(selected);
+                        textOwner.setEditable(false);
+                        textName.setEditable(false);
+                        textDescription.setEditable(false);
+                        textLink.setEditable(false);
+                        textOwner.setText(project.getOwner());
+                        textName.setText(project.getName());
+                        textDescription.setText(project.getDescription());
+                        textLink.setText(project.getLink());
+
+                        edit.setDisable(false);
+                        remove.setDisable(false);
+                        if(project.getFileBLob()!=null) {
+                            download.setDisable(false);
+                        }
+                        save.setDisable(true);
                     }
                 });
     }
+    public void clear(ActionEvent event){
+        actionLbl.setText("");
+        textOwner.setText("");
+        textOwner.setEditable(true);
+        textName.setText("");
+        textName.setEditable(true);
+        textDescription.setText("");
+        textDescription.setEditable(true);
+        textLink.setText("");
+        textLink.setEditable(true);
+        remove.setDisable(true);
+        download.setDisable(true);
+        save.setDisable(false);
+    }
 
-    //load new window by project details
-    public void loadDetailsPage(Project project) throws IOException {
-        StackPane root = new StackPane();
-        Label title = new Label("Project details");
-        title.setStyle("-fx-font-size: 50px;");
-        TextField txtName  = new TextField(project.getName());
-        txtName.setStyle("-fx-control-inner-background: grey;");
-        txtName.setEditable(false);
-        TextField txtDescription  = new TextField(project.getDescription());
-        txtDescription.setEditable(false);
-        txtDescription.setStyle("-fx-control-inner-background: grey;");
-        TextField txtLink = new TextField(project.getLink());
-        txtLink.setEditable(false);
-        txtLink.setStyle("-fx-control-inner-background: grey;");
-        Button removeProject = new Button("Remove project");
-        Button editProject = new Button("Edit Project");
-        Button saveProject = new Button("Save Project");
-        saveProject.setDisable(true);
-        Label actionLbl = new Label();
-        actionLbl.setStyle("-fx-control-inner-background: red;");
-
-        editProject.setOnAction(event -> {
-            txtName.setEditable(true);
-            txtName.setStyle("-fx-control-inner-background: white;");
-            txtDescription.setEditable(true);
-            txtDescription.setStyle("-fx-control-inner-background: white;");
-            txtLink.setEditable(true);
-            txtLink.setStyle("-fx-control-inner-background: white;");
-            saveProject.setDisable(false);
-        });
-
-        saveProject.setOnAction(event -> {
-            Project editedProject = Project.builder()
-                    .id(project.getId())
-                    .name(txtName.getText())
-                    .description(txtDescription.getText())
-                    .link(txtLink.getText())
+    //Upload file
+    public void uploadFile(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Open Resource File");
+        file = fileChooser.showOpenDialog(null);
+        if(file != null) {
+            lblFile.setText(file.getName());
+        }
+    }
+    public void onSave(ActionEvent event) throws IOException {
+        byte[] fileBytes = null;
+        if(file != null) {
+            fileBytes = new FileInputStream(file).readAllBytes();
+        }
+        try {
+            Blob fileBlob = null;
+            String fileName = "No File";
+            if (fileBytes !=null) {
+                 fileBlob = new SerialBlob(fileBytes);
+                 fileName = file.getName();
+            }
+            Project project = Project.builder()
+                    .owner(textOwner.getText())
+                    .name(textName.getText())
+                    .description(textDescription.getText())
+                    .link(textLink.getText())
+                    .fileName(fileName)
+                    .fileBLob(fileBlob)
                     .build();
-            projectService.add(editedProject);
-            txtName.setEditable(false);
-            txtDescription.setEditable(false);
-            txtLink.setEditable(false);
-            this.obList = FXCollections.observableArrayList(projectService.getAll());
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Project Updated");
-            alert.setHeaderText(project.getName() + " project information has been updated");
-            alert.show();
-        });
-        // open link in browser or display message
-        txtLink.setOnAction(event -> {
-            if(Desktop.isDesktopSupported()) {
-                try {
-                    Desktop desktop = Desktop.getDesktop();
-                    desktop.browse(new URI(project.getLink()));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (URISyntaxException e) {
-                    throw new RuntimeException(e);
+            String errorField = valid(project);
+            if(errorField.equals("")) {
+                projectService.add(project);
+                obList.add(project);
+                textOwner.setText("");
+                textName.setText("");
+                textDescription.setText("");
+                textLink.setText("");
+                lblFile.setText("");
+                remove.setDisable(true);
+                download.setDisable(true);
+                file = null;
+            }else{
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Field error");
+                alert.setHeaderText("Please fill the missing field");
+                alert.setContentText(errorField);
+                alert.show();
+            }
+        }catch(SQLException e){
+            throw new RuntimeException();
+        }
+    }
+
+    public void edit(ActionEvent event) {
+        actionLbl.setText("");
+        textOwner.setEditable(true);
+        textName.setEditable(true);
+        textDescription.setEditable(true);
+        textLink.setEditable(true);
+        update.setDisable(false);
+        remove.setDisable(true);
+        download.setDisable(true);
+    }
+
+    public void update(ActionEvent event) throws IOException {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Open Resource File");
+        file = fileChooser.showOpenDialog(null);
+        String fileName = "No file";
+        Blob fileBlob = null;
+
+        if(file == null) {
+            if(project != null){
+                fileBlob = project.getFileBLob();
+                fileName = project.getFileName();
+            }
+        }else{
+            byte[] fileBytes = new FileInputStream(file).readAllBytes();
+            try {
+                fileBlob = new SerialBlob(fileBytes);
+                fileName = file.getName();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Project editedProject = Project.builder()
+                .id(project.getId())
+                .owner(textOwner.getText())
+                .name(textName.getText())
+                .description(textDescription.getText())
+                .link(textLink.getText())
+                .fileName(fileName)
+                .fileBLob(fileBlob)
+                .build();
+        //save the project and update the table
+        projectService.add(editedProject);
+        obList.set(selected,editedProject);
+        table.setItems(obList);
+
+        textOwner.setEditable(false);
+        textName.setEditable(false);
+        textDescription.setEditable(false);
+        textLink.setEditable(false);
+        remove.setDisable(true);
+        download.setDisable(true);
+        update.setDisable(true);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Project Updated");
+        alert.setHeaderText(project.getName() + " project information has been updated");
+        alert.show();
+    }
+
+    public void remove(ActionEvent event) {
+        download.setDisable(true);
+        remove.setDisable(true);
+        edit.setDisable(true);
+        save.setDisable(true);
+        projectService.delete(project.getId());
+        //Remove the project and update the table
+        obList.remove(project);
+        project = null;
+        table.setItems(obList);
+        actionLbl.setText("Project has been deleted");
+    }
+
+    public void download(ActionEvent event){
+        long id = obList.get(selected).getId();
+        Project project1 = projectService.getOne(id);
+        String filename = project1.getFileName();
+        Blob fileBlob = project1.getFileBLob();
+        if(fileBlob !=null) {
+            Path downloadPath = Paths.get(System.getProperty("user.home") + "\\downloads\\" + filename);
+            try {
+                InputStream inputStream = fileBlob.getBinaryStream();
+                Files.copy(inputStream, downloadPath, StandardCopyOption.REPLACE_EXISTING);
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("File downloaded");
+                alert.setHeaderText("File downloaded to your downloaded folder");
+                alert.setContentText(project1.getName());
+                alert.show();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public String valid(Project project){
+        String field = "";
+        if(project.getOwner().length() > 0){
+            if(project.getName().length() >0){
+                if(project.getDescription().length()>0){
+                    if(!(project.getLink().length()>0)){
+                        field = Fields.LINK.getField();
+                    }
+                }else {
+                    field = Fields.DESCRIPTION.getField();
                 }
             }else{
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Link");
-                alert.setHeaderText("I couldn't open the link in the browser for you... you may copy the link");
-                alert.setContentText(project.getLink());
-                alert.showAndWait();
+                field = Fields.NAME.getField();
             }
-        });
-// add element to vbox
-        VBox vbox = new VBox();
-        vbox.getChildren().add(title);
-        vbox.getChildren().add(txtName);
-        vbox.getChildren().add(txtDescription);
-        vbox.getChildren().add(txtLink);
-        vbox.getChildren().add(removeProject);
-        vbox.getChildren().add(editProject);
-        vbox.getChildren().add(saveProject);
-        vbox.getChildren().add(actionLbl);
-
-        vbox.setAlignment(Pos.CENTER);
-        root.getChildren().add(vbox);
-        Scene scene = new Scene(root,500,500);
-
-        Stage stage = new Stage();
-        Image image = new Image(this.getClass().getResourceAsStream("/com/dvmena/followprojects/images/icon.png"));
-        stage.getIcons().add(image);
-        stage.setScene(scene);
-        stage.show();
-        
-        removeProject.setOnAction(event -> {
-            removeProject.setDisable(true);
-            editProject.setDisable(true);
-            saveProject.setDisable(true);
-            projectService.delete(project.getId());
-            this.obList.remove(index);
-            actionLbl.setText("Project has been deleted");
-        });
+        }else{
+            field =  Fields.OWNER.getField();
+        }
+        return field;
     }
 }

@@ -1,6 +1,10 @@
 #vbox-label-add-project{
--fx-font-size: 50px;
--fx-border-style: dotted;
--fx-border-width: 5px;
--fx-border-color: blue;
+    -fx-font-size: 50px;
+    -fx-border-style: dotted;
+    -fx-border-width: 5px;
+    -fx-border-color: green;
+}
+VBox{
+    -fx-spacing: 20;
+    -fx-padding: 20;
 }

@@ -4,29 +4,71 @@
 <?import javafx.scene.layout.VBox?>
 
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TableColumn?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.dvmena.followprojects.controller.ProjectsController">
-    <Label id ="vbox-label-add-project">Add project</Label>
-    <Label>Project Name:</Label>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.geometry.Insets?>
+<FlowPane xmlns:fx="http://javafx.com/fxml"
+          fx:controller="com.dvmena.followprojects.controller.ProjectsController">
+        <VBox>
+            <Label id ="vbox-label-add-project">Add project</Label>
+            <VBox xmlns="http://javafx.com/javafx"
+                  xmlns:fx="http://javafx.com/fxml">
+                <HBox>
+                    <Label>Owner:
+                        <padding>
+                            <Insets right="25" />
+                        </padding>
+                    </Label>
+                    <TextField fx:id="textOwner" maxWidth="700"/>
+                </HBox>
+                <HBox>
+                    <Label>Name:
+                        <padding>
+                            <Insets right="29" />
+                        </padding></Label>
+                    <TextField fx:id="textName" maxWidth="700"/>
+                </HBox>
+                <HBox>
+                    <Label>Description:</Label>
+                    <padding>
+                        <Insets right="3" />
+                    </padding>
+                    <TextField fx:id="textDescription" maxWidth="700"/>
+                </HBox>
+                <HBox>
+                    <Label>Link:
+                        <padding>
+                            <Insets right="39" />
+                        </padding>
+                    </Label>
+                    <TextField fx:id="textLink" maxWidth="700"/>
+                </HBox>
+                <Button fx:id="uploadFile" onAction="#uploadFile" text="Upload File"/>
+                <Label fx:id="actionLbl"/>
+            </VBox>
+        </VBox>
+    <VBox>
+        <Button fx:id="clear" onAction="#clear" text="Clear"/>
 
-    <TextField fx:id="textName" maxWidth="400"/>
+        <Label fx:id="lblFile"/>
+        <Button fx:id="save" onAction="#onSave" text="Save"/>
+        <Button fx:id="edit" onAction="#edit" text="Edit"/>
+        <Button fx:id="update" onAction="#update" text="Update"/>
+        <Button fx:id="remove" onAction="#remove" text="Remove"/>
+        <Button fx:id="download" onAction="#download" text="Download"/>
+    </VBox>
 
-    <Label>Project description</Label>
-
-    <TextField fx:id="textDescription" maxWidth="400"/>
-
-    <Label>Project Link</Label>
-
-    <TextField fx:id="textLink" maxWidth="400"/>
-
-    <Button fx:id ="button" onAction="#onSave" text="Save">Save</Button>
-
-    <TableView fx:id="table" layoutX="300" layoutY="300">
-        <TableColumn prefWidth="75" fx:id ="name" text="Name"></TableColumn>
-        <TableColumn prefWidth="200" fx:id ="description" text="Description"></TableColumn>
-        <TableColumn prefWidth="200" fx:id ="link" text="Link"></TableColumn>
+<HBox>
+    <TableView fx:id="table">
+        <TableColumn prefWidth="150" fx:id="owner" text="Owner:"/>
+        <TableColumn prefWidth="150" fx:id="name" text="Name:"/>
+        <TableColumn prefWidth="200" fx:id="description" text="Description:"/>
+        <TableColumn prefWidth="200" fx:id="link" text="Link:"/>
+<!--        <TableColumn prefWidth="200" fx:id="fileName" text="File Name"/>-->
     </TableView>
-</VBox>
+
+</HBox>
+</FlowPane>

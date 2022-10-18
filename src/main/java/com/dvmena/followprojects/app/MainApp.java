@@ -26,7 +26,7 @@ public class MainApp extends Application {
     Label lblDetailsName;
     @Override
     public void start(Stage stage){
-        Scene scene = new Scene(root, 600, 600);
+        Scene scene = new Scene(root, 1000, 600);
         scene.getStylesheets().add(this.getClass().getResource("/com/dvmena/followprojects/myProjects.css").toExternalForm());
         Image image = new Image(this.getClass().getResourceAsStream("/com/dvmena/followprojects/images/icon.png"));
         stage.getIcons().add(image);
@@ -66,6 +66,4 @@ public class MainApp extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-
-
 }

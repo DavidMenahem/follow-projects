@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 
 
 import java.util.List;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
@@ -19,6 +21,10 @@ public class ProjectService {
         return projectsRepository.findAll();
     }
 
+    public Project getOne(long id){
+        Optional<Project> project = projectsRepository.findById(id);
+        return project.get();
+    }
     public void delete(long id){
         projectsRepository.deleteById(id);
     }
